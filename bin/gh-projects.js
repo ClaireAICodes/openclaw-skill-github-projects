@@ -210,12 +210,10 @@ const listItems = program
   .option('--owner <owner>', 'GitHub owner (user or org)')
   .option('--format <format>', 'Output format: table or json', 'table')
   .requiredOption('--project-id <id>', 'Project ID')
-  .option('--state <state>', 'Filter: added (default) or archived')
   .action(async (options) => {
     try {
       const owner = options.owner || await getDefaultOwner();
       const result = await itemCommands.list(owner, options.projectId, {
-        state: options.state || 'added',
         format: options.format
       });
       console.log(result);
@@ -226,22 +224,19 @@ const listItems = program
 
 const editItem = program
   .command('edit-item')
-  .description('Edit an item')
+  .description('Edit an item (title and body only)')
   .option('--owner <owner>', 'GitHub owner (user or org)')
   .requiredOption('--item-id <id>', 'Item ID')
   .option('--project-id <id>', 'Project ID (required for context)')
   .option('--title <title>', 'New title')
   .option('--body <body>', 'New body')
-  .option('--field <fieldId>=<value>', 'Set custom field (can repeat)')
   .action(async (options) => {
     try {
       const owner = options.owner || await getDefaultOwner();
-      const fields = parseFieldOptions(options.field);
       await itemCommands.edit(options.itemId, {
         projectId: options.projectId,
         title: options.title,
-        body: options.body,
-        fields
+        body: options.body
       });
       console.log(chalk.green('✓ Item updated'));
     } catch (error) {
@@ -254,11 +249,11 @@ const archiveItem = program
   .description('Archive an item')
   .option('--owner <owner>', 'GitHub owner (user or org)')
   .requiredOption('--item-id <id>', 'Item ID')
-  .option('--project-id <id>', 'Project ID (for context)')
+  .requiredOption('--project-id <id>', 'Project ID')
   .action(async (options) => {
     try {
       const owner = options.owner || await getDefaultOwner();
-      await itemCommands.archive(options.itemId, options.projectId);
+      await itemCommands.archive(owner, options.projectId, options.itemId);
       console.log(chalk.green('✓ Item archived'));
     } catch (error) {
       handleError(error);
@@ -270,7 +265,7 @@ const deleteItem = program
   .description('Delete an item from a project')
   .option('--owner <owner>', 'GitHub owner (user or org)')
   .requiredOption('--item-id <id>', 'Item ID')
-  .option('--project-id <id>', 'Project ID (for context)')
+  .requiredOption('--project-id <id>', 'Project ID')
   .option('--confirm', 'Skip confirmation')
   .action(async (options) => {
     try {
@@ -283,7 +278,7 @@ const deleteItem = program
         }
       }
 
-      await itemCommands.remove(options.itemId, options.projectId);
+      await itemCommands.remove(owner, options.projectId, options.itemId);
       console.log(chalk.green('✓ Item deleted'));
     } catch (error) {
       handleError(error);
@@ -340,7 +335,6 @@ const deleteField = program
   .description('Delete a custom field')
   .option('--owner <owner>', 'GitHub owner (user or org)')
   .requiredOption('--field-id <id>', 'Field ID')
-  .option('--project-id <id>', 'Project ID (for confirmation)')
   .option('--confirm', 'Skip confirmation')
   .action(async (options) => {
     try {
@@ -353,7 +347,7 @@ const deleteField = program
         }
       }
 
-      await fieldCommands.remove(options.fieldId, options.projectId);
+      await fieldCommands.remove(options.fieldId);
       console.log(chalk.green('✓ Field deleted'));
     } catch (error) {
       handleError(error);
@@ -396,6 +390,21 @@ const unlinkRepo = program
     }
   });
 
+const listRepos = program
+  .command('list-repos')
+  .description('List repositories linked to a project')
+  .option('--owner <owner>', 'GitHub owner (user or org)')
+  .requiredOption('--project-id <id>', 'Project ID')
+  .action(async (options) => {
+    try {
+      const owner = options.owner || await getDefaultOwner();
+      const result = await linkCommands.list(owner, options.projectId);
+      console.log(result);
+    } catch (error) {
+      handleError(error);
+    }
+  });
+
 // =====================
 // HELPERS
 // =====================
@@ -430,7 +439,8 @@ async function readFileContent(filepath) {
 function parseFieldOptions(fieldOpts) {
   const fields = {};
   if (fieldOpts) {
-    fieldOpts.forEach(opt => {
+    const optsArray = Array.isArray(fieldOpts) ? fieldOpts : [fieldOpts];
+    optsArray.forEach(opt => {
       const [key, value] = opt.split('=');
       if (key && value) {
         fields[key] = value;
