@@ -1,375 +1,288 @@
 # GitHub Projects Skill for OpenClaw
 
-Automate and manage GitHub Projects with a powerful CLI interface. Create projects, add items, manage custom fields, and build automation workflows.
+OpenClaw skill for comprehensive GitHub Projects automation. Manage projects, items (issues/PRs/drafts), custom fields, and repository links using the GitHub CLI with consistent interfaces and automation-friendly JSON output.
 
 ## Features
 
-- **Project Management**: Create, edit, view, and delete GitHub Projects
-- **Item Operations**: Add issues/PRs, create draft items, edit, archive, and delete items
-- **Field Management**: Create and manage custom fields in projects
-- **Automation Ready**: Designed for scripted workflows and cron jobs
-- **Integration Friendly**: Works seamlessly with OpenClaw's automation system
+- **Project Management**: Create, view, edit, close, and delete GitHub Projects
+- **Item Operations**: Add issues/PRs, create draft items, edit titles/bodies, archive, and delete items
+- **Field Management**: Create and list custom fields (single-select, text, date, number)
+- **Repository Linking**: Link and unlink repositories, list linked repos via GraphQL
+- **Automation Ready**: JSON output, machine-readable formats, designed for cron jobs and scripts
+- **Consistent Interface**: Common `--owner` and `--project-id` patterns across commands
 
 ## Prerequisites
 
 - Node.js 16+
 - GitHub CLI (`gh`) authenticated with `project` scope
 - Verify with: `gh auth status` (should show `project` in scopes)
-
-If `project` scope is missing: `gh auth refresh -s project`
+- If `project` scope missing: `gh auth refresh -s project`
 
 ## Installation
 
 ```bash
-# Clone the skill
+# From the skill directory
 cd ~/.openclaw/workspace/skills/github-projects
-
-# Install dependencies
 npm ci
 
-# Link globally (optional)
+# Optional: link globally to use from anywhere
 npm link
 
 # Verify
 gh-projects --version
 ```
 
-## Quick Start
+## Quick Examples
 
 ```bash
 # List your projects
-gh-projects list --owner my-org
+gh-projects list --owner ClaireAICodes
 
-# Create a new project
-gh-projects create --owner my-org --title "Q2 Roadmap" --description "Quarterly planning"
+# Create a project (description set in a second step)
+gh-projects create --owner ClaireAICodes --title "Roadmap" --description "Quarterly goals"
 
-# Add an issue to a project
-gh-projects add-item --project-id 123 --issue-repo "my-org/my-repo" --issue-number 45
+# View details
+gh-projects view --project-id 1 --owner ClaireAICodes
 
-# View project details
-gh-projects view --project-id 123
+# Add an existing issue to a project
+gh-projects add-item --project-id 1 --issue-repo my-org/my-repo --issue-number 42
+
+# Create a draft task directly in a project
+gh-projects create-item --project-id 1 --title "New task" --body "Details..."
+
+# List items (includes draft and linked)
+gh-projects list-items --project-id 1 --format json
+
+# Edit a draft item: use the content ID (starts with DI_)
+gh-projects edit-item --item-id DI_xxx --title "Updated title"
+
+# Archive an item: use the item ID (starts with PVTI_)
+gh-projects archive-item --item-id PVTI_xxx --project-id 1 --owner ClaireAICodes
+
+# Delete an item: use the item ID
+gh-projects delete-item --item-id PVTI_xxx --project-id 1 --owner ClaireAICodes --confirm
+
+# Create a single-select custom field
+gh-projects create-field --project-id 1 --name "Priority" --type single-select --options "High,Medium,Low"
+
+# Link a repository to the project
+gh-projects link-repo --project-id 1 --repo my-org/my-repo
+
+# List linked repositories (uses GraphQL under the hood)
+gh-projects list-repos --project-id 1 --owner my-org
+
+# Close a project
+gh-projects close --project-id 1 --owner my-org
+
+# Delete a project (with confirmation)
+gh-projects delete --project-id 1 --owner my-org --confirm
 ```
 
-## Commands
+## Commands Reference
 
-### Project Commands
-
-#### `list`
-List projects for an owner (user or organization).
+### `list`
+List projects for an owner.
 
 ```bash
-gh-projects list --owner <owner> [--state open|closed] [--format json|table]
+gh-projects list --owner <owner> [--format table|json] [--state open|closed]
 ```
 
-**Example:**
+- `--owner`: GitHub username or organization (required unless default can be inferred)
+- `--format`: Output format, defaults to `table`
+- `--state`: Filter by `open` or `closed`
+
+### `create`
+Create a new project. Description is applied after creation.
+
 ```bash
-gh-projects list --owner ClaireAICodes --format table
+gh-projects create --owner <owner> --title "Title" [--description "Desc"]
 ```
 
-#### `create`
-Create a new project.
+- `--owner`: Owner (required)
+- `--title`: Project title (required)
+- `--description`: Optional description (set via edit after creation)
 
-```bash
-gh-projects create \
-  --owner <owner> \
-  --title "Project Title" \
-  [--description "Description"] \
-  [--template <template-id>] \
-  [--org <org-name>]
-```
-
-**Example:**
-```bash
-gh-projects create --owner ClaireAICodes --title "OpenClaw Development" --description "Track skill development"
-```
-
-#### `view`
+### `view`
 View project details.
 
 ```bash
 gh-projects view --project-id <id> [--owner <owner>] [--web]
 ```
 
-**Example:**
+- `--project-id`: Numeric project ID (required)
+- `--owner`: Owner (required unless default)
+- `--web`: Open the project in browser instead of printing details
+
+### `edit`
+Edit project title or description.
+
 ```bash
-gh-projects view --project-id 123 --owner my-org --web
+gh-projects edit --project-id <id> [--owner <owner>] [--title "New"] [--description "New"]
 ```
 
-#### `edit`
-Edit project metadata.
-
-```bash
-gh-projects edit \
-  --project-id <id> \
-  [--owner <owner>] \
-  [--title "New Title"] \
-  [--description "New Description"] \
-  [--readme "Updated readme content"]
-```
-
-#### `close`
+### `close`
 Close a project.
 
 ```bash
 gh-projects close --project-id <id> [--owner <owner>]
 ```
 
-#### `delete`
-Delete a project (requires admin permissions).
+### `delete`
+Delete a project (requires admin privileges).
 
 ```bash
 gh-projects delete --project-id <id> [--owner <owner>] [--confirm]
 ```
 
-### Item Commands
+- `--confirm`: Skip confirmation prompt (use with caution)
 
-#### `add-item`
+### `add-item`
 Add an existing issue or pull request to a project.
 
 ```bash
-gh-projects add-item \
-  --project-id <id> \
-  --issue-repo <owner/repo> \
-  --issue-number <number> \
-  [--column <column-id>]
+gh-projects add-item --project-id <id> --issue-repo <owner/repo> --issue-number <num> [--column <col-id>]
 ```
 
-**Example:**
-```bash
-gh-projects add-item --project-id 123 --issue-repo ClaireAICodes/openclaw-skill-github --issue-number 42
-```
+- `--project-id`: Destination project (required)
+- `--issue-repo`: Repository containing the issue/PR (required)
+- `--issue-number`: Issue or PR number (required)
+- `--column`: Column ID for classic projects (optional)
 
-#### `create-item`
-Create a new draft issue directly in a project (no repository link).
+### `create-item`
+Create a draft item directly in a project (no repository link).
 
 ```bash
-gh-projects create-item \
-  --project-id <id> \
-  --title "Item Title" \
-  [--body "Description"] \
-  [--column <column-id>]
+gh-projects create-item --project-id <id> --title "Title" [--body "Body"] [--column <col-id>]
 ```
 
-#### `list-items`
-List all items in a project.
+- Returns the item ID (prefixed with `PVTI_`)
+
+### `list-items`
+List items in a project.
 
 ```bash
-gh-projects list-items \
-  --project-id <id> \
-  [--owner <owner>] \
-  [--state added|archived] \
-  [--format json|table]
+gh-projects list-items --project-id <id> [--owner <owner>] [--format table|json]
 ```
 
-**Example:**
-```bash
-gh-projects list-items --project-id 123 --format json
-```
+- Output includes the item ID (prefixed `PVTI_` for drafts or issue/PR numbers) and title
+- For JSON output, the object includes `content` with the draft issue content ID (`DI_`) when applicable
 
-#### `edit-item`
-Edit an item's fields or content.
+**Note**: To edit a draft item, you need the content ID (`DI_...`) from the JSON output, not the item ID.
+
+### `edit-item`
+Edit an item's title and/or body.
 
 ```bash
-gh-projects edit-item \
-  --item-id <id> \
-  [--project-id <id>] \
-  [--title "New title"] \
-  [--body "New body"] \
-  [--field <field-id>=<value>]
+gh-projects edit-item --item-id <id> --project-id <id> [--owner <owner>] [--title "New"] [--body "New"]
 ```
 
-#### `archive-item`
-Archive an item in the project.
+- `--item-id`: For draft items, use the *content* ID (`DI_...`) from `list-items --format json`. For linked issues/PRs, use the numeric issue/PR ID.
+- `--project-id`: Required for non-draft items; optional for drafts but recommended
+
+### `archive-item`
+Archive an item (hides from default view).
 
 ```bash
-gh-projects archive-item --item-id <id> [--project-id <id>]
+gh-projects archive-item --item-id <id> --project-id <id> [--owner <owner>]
 ```
 
-#### `delete-item`
-Delete an item from the project.
+- `--item-id`: The item ID (prefixed `PVTI_` for drafts, numeric for issues/PRs)
+- `--project-id`: Project number (required)
+
+### `delete-item`
+Permanently delete an item from a project.
 
 ```bash
-gh-projects delete-item --item-id <id> [--project-id <id>] [--confirm]
+gh-projects delete-item --item-id <id> --project-id <id> [--owner <owner>] [--confirm]
 ```
 
-### Field Commands
+- `--item-id`: The item ID (same format as `archive-item`)
+- `--project-id`: Project number (required)
+- `--confirm`: Skip confirmation
 
-#### `list-fields`
-List custom fields in a project.
+### `list-fields`
+List custom fields defined in a project.
 
 ```bash
 gh-projects list-fields --project-id <id> [--owner <owner>]
 ```
 
-#### `create-field`
-Create a new custom field in a project.
+Shows field ID, name, type, and for single-select fields, the available options.
+
+### `create-field`
+Create a custom field in a project.
 
 ```bash
-gh-projects create-field \
-  --project-id <id> \
-  --name "Field Name" \
-  --type text|single-select|iteration|date [--owner <owner>]
-
-# For single-select, also provide options:
-gh-projects create-field \
-  --project-id <id> \
-  --name "Priority" \
-  --type single-select \
-  --options "High,Medium,Low"
+gh-projects create-field --project-id <id> --name "Name" --type text|single-select|date|number [--options "A,B,C"]
 ```
 
-**Example:**
-```bash
-gh-projects create-field --project-id 123 --name "Status" --type single-select --options "Todo,Doing,Done"
-```
+- `--type`: Supported types: `text`, `single-select`, `date`, `number` (case-insensitive, hyphens become underscores)
+- `--options`: Comma-separated options for `single-select` fields only
 
-#### `delete-field`
-Delete a custom field from a project.
+### `delete-field`
+Delete a custom field.
 
 ```bash
-gh-projects delete-field --field-id <id> --project-id <id> [--confirm]
+gh-projects delete-field --field-id <id> [--confirm]
 ```
 
-### Link Commands
+- `--field-id`: Field ID from `list-fields` (prefixed `PVT...`)
 
-#### `link-repo`
-Link a repository to a project (enables auto-add of issues/PRs).
+### `link-repo`
+Link a repository to the project (enables auto-adding issues/PRs).
 
 ```bash
-gh-projects link-repo \
-  --project-id <id> \
-  --repo <owner/repo> \
-  [--owner <owner>]
+gh-projects link-repo --project-id <id> --repo <owner/repo> [--owner <owner>]
 ```
 
-#### `unlink-repo`
-Unlink a repository from a project.
+### `unlink-repo`
+Unlink a repository from the project.
 
 ```bash
-gh-projects unlink-repo \
-  --project-id <id> \
-  --repo <owner/repo> \
-  [--owner <owner>]
+gh-projects unlink-repo --project-id <id> --repo <owner/repo> [--owner <owner>]
 ```
+
+### `list-repos`
+List repositories linked to a project.
+
+```bash
+gh-projects list-repos --project-id <id> [--owner <owner>]
+```
+
+**Implementation Note**: This command uses the GitHub GraphQL API internally to fetch linked repositories, as the GitHub CLI does not provide a direct subcommand for this operation.
 
 ## Output Formats
 
-Most listing commands support:
+Most listing commands support `--format table` (default, human-friendly) and `--format json` (machine-readable). JSON output is suitable for piping to `jq` or other tools.
 
-- `--format table` (default): Human-readable table
-- `--format json`: JSON output for scripting
-
-**Example:**
+Example:
 ```bash
-gh-projects list-items --project-id 123 --format json | jq '.[] | .title'
+gh-projects list-items --project-id 1 --format json | jq '.items[] | .title'
 ```
 
-## Automation Examples
-
-### Sync Issues to Project
-
-```bash
-# Create a script to add all open issues from a repo to a project
-gh issue list --repo my-org/my-repo --state open --json number,title --jq '.[] | "\(.number) \(.title)"' | \
-  while read num title; do
-    gh-projects add-item --project-id 123 --issue-repo my-org/my-repo --issue-number $num
-  done
-```
-
-### Daily Triage Report
-
-```bash
-# Generate a markdown report of project items for daily standup
-cat > /tmp/report.md << 'EOF'
-# Project Status — $(date +%Y-%m-%d)
-
-## Items Added Today
-$(gh-projects list-items --project-id 123 --format json | jq -r --arg today "$(date +%Y-%m-%d)" '.[] | select(.createdAt | startswith($today)) | "- \(.title) (#\(.number))"')
-
-## In Progress
-$(gh-projects list-items --project-id 123 --format json | jq -r '.[] | select(.status == "In Progress") | "- \(.title)"')
-EOF
-
-# Send to chat or email
-cat /tmp/report.md
-```
-
-### Archive Old Items
-
-```bash
-# Archive items that haven't been updated in 30 days
-gh-projects list-items --project-id 123 --format json | \
-  jq -r '.[] | select(.updatedAt | test("^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z") | fromdate < (now - (30*24*60*60))) | .id' | \
-  xargs -r -I {} gh-projects archive-item --item-id {}
-```
-
-### Weekly Project Backup
-
-```bash
-#!/bin/bash
-BACKUP_DIR="$HOME/project-backups"
-gh-projects list --owner my-org --format json > "$BACKUP_DIR/projects-$(date +%Y%m%d).json"
-gh-projects list-items --project-id 123 --format json > "$BACKUP_DIR/project-123-items-$(date +%Y%m%d).json"
-```
-
-## Error Handling
-
-The skill provides clear error messages:
+## Error Handling & Tips
 
 - **Missing project scope**: Run `gh auth refresh -s project`
-- **Permission denied**: Ensure you have admin/write access to the project
-- **Not found**: Verify project ID and owner
-- **Invalid field type**: Check supported types: `text`, `single-select`, `iteration`, `date`
+- **"owner is required"**: Specify `--owner` or run from within a local git repository of the owner
+- **"Could not resolve node"**: Ensure you are using the correct ID type (content ID for draft item edits, item ID for archive/delete)
+- **GraphQL errors for list-repos**: The project node ID is obtained automatically; ensure you have access to the project
 
-## Troubleshooting
+## Automation & Cron Integration
 
-### "Missing required scope: project"
+The skill is designed for non-interactive use. Example cron job to generate a daily status report:
+
 ```bash
-gh auth refresh -s project
+0 8 * * * gh-projects list-items --project-id 123 --owner my-org --format json > /path/to/project-status.json
 ```
 
-### "Could not find project"
-- Verify project exists: `gh project view <id> --owner <owner>`
-- Check you have access to the project
-
-### JSON parsing issues
-Use `--jq` for complex filtering:
-```bash
-gh-projects list-items --project-id 123 --format json | jq '.[] | {id, title}'
-```
-
-## Architecture
-
-The skill is built as a thin wrapper around the GitHub CLI (`gh project`), with:
-
-- **Consistent interface**: Common flags (`--owner`, `--project-id`, `--format`)
-- **Smart defaults**: Auto-detects owners from context when possible
-- **Automation focus**: JSON output for scripts, machine-readable formats
-- **Safety checks**: Confirmation prompts for destructive operations
-
-## Integration with OpenClaw
-
-This skill integrates with OpenClaw's automation system:
-
-1. **Cron jobs**: Schedule project syncs, reports, or automated moves
-2. **Heartbeats**: Check project status during daily checks
-3. **Sub-agents**: Spawn specialized agents for complex workflows
-
-### Example Cron Setup
+Or within OpenClaw's cron system:
 
 ```bash
-# Daily project status report at 8 AM
 openclaw cron add \
-  --name "Project Status Report" \
-  --cron "0 8 * * *" \
+  --name "Daily Project Sync" \
+  --cron "0 5 * * *" \
   --tz "Asia/Singapore" \
-  --message "gh-projects list-items --project-id 123 --format json > ~/status.json"
-
-# Weekly cleanup of archived items
-openclaw cron add \
-  --name "Archive Old Items" \
-  --cron "0 6 * * 1" \
-  --message "gh-projects archive-stale --project-id 123 --days 30"
+  --message "gh-projects list-items --project-id 123 --owner my-org > ~/status.txt"
 ```
 
 ## Development
@@ -378,12 +291,16 @@ openclaw cron add \
 # Install dependencies
 npm ci
 
-# Run lint
+# Run lint (if configured)
 npm run lint
 
-# Test (when test suite is added)
-npm test
+# Test manually
+./bin/gh-projects.js list --owner <your-account>
 ```
+
+## Version
+
+1.0.0 — Initial release
 
 ## License
 
