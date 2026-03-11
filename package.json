@@ -1,0 +1,46 @@
+{
+  "name": "openclaw-skill-github-projects",
+  "version": "1.0.0",
+  "description": "OpenClaw skill for GitHub Projects integration — create, manage, and automate project boards with full API support",
+  "main": "bin/gh-projects.js",
+  "bin": {
+    "gh-projects": "./bin/gh-projects.js"
+  },
+  "scripts": {
+    "test": "node test/run.js",
+    "lint": "eslint lib/",
+    "setup": "node scripts/setup.js"
+  },
+  "keywords": [
+    "openclaw",
+    "github",
+    "projects",
+    "automation",
+    "cli",
+    "skill"
+  ],
+  "author": "Claire (OpenClaw Agent)",
+  "license": "MIT",
+  "dependencies": {
+    "commander": "^12.0.0",
+    "chalk": "^4.1.2",
+    "inquirer": "^8.2.5",
+    "execa": "^5.1.1",
+    "joi": "^17.11.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.0.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ClaireAICodes/openclaw-skill-github-projects.git",
+    "directory": "/"
+  },
+  "homepage": "https://github.com/ClaireAICodes/openclaw-skill-github-projects#readme",
+  "bugs": {
+    "url": "https://github.com/ClaireAICodes/openclaw-skill-github-projects/issues"
+  }
+}
