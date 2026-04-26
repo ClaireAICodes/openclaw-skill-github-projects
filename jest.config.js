@@ -6,8 +6,5 @@ module.exports = {
   clearMocks: true,
   resetMocks: true,
   restoreMocks: true,
-  moduleNameMapper: {
-    '^execa$': '<rootDir>/test/__mocks__/execa.js'
-  },
-  testSetup: '<rootDir>/test/setup.js'
+  testTimeout: 10000
 };

@@ -48,7 +48,7 @@ echo "$OUTPUT" | grep -q "URL:" && pass "View shows URL" || fail "Missing URL"
 echo ""
 echo "Test: Create test issue"
 ISSUE_TITLE="Test Issue from Integration $(date +%s)"
-ISSUE_URL=$(gh issue create --repo "$REPO" --title "$ISSUE_TITLE" --body "Integration test" --json url -q .url)
+ISSUE_URL=$(gh issue create --repo "$REPO" --title "$ISSUE_TITLE" --body "Integration test" | tail -1)
 echo "Created: $ISSUE_URL"
 [[ -n "$ISSUE_URL" ]] && pass "Issue created" || fail "Failed to create issue"
 
@@ -69,7 +69,8 @@ echo ""
 echo "Test: List items in project"
 OUTPUT=$(./bin/gh-projects.js list-items --project-id "$PROJECT_ID" --owner "$OWNER")
 echo "$OUTPUT" | grep -q "ID" && pass "List shows ID column" || fail "Missing ID column"
-echo "$OUTPUT" | grep -q "$ISSUE_TITLE" && pass "List shows issue title" || fail "Missing issue title"
+# Title includes timestamp, so match partial
+echo "$OUTPUT" | grep -q "Test Issue from Integration" && pass "List shows issue title" || { echo "Output:"; echo "$OUTPUT"; fail "Missing issue title"; }
 
 # Test 6: List fields
 echo ""

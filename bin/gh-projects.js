@@ -466,8 +466,11 @@ async function confirm(message) {
 function handleError(error) {
   const chalk = require('chalk');
 
+  // execa with reject:false returns {stdout, stderr}
   if (error.stderr) {
     console.error(chalk.red('Error:'), error.stderr.trim());
+  } else if (error.stdout) {
+    console.error(chalk.red('Error:'), error.stdout.trim());
   } else if (error.message) {
     console.error(chalk.red('Error:'), error.message);
   } else {
@@ -477,7 +480,7 @@ function handleError(error) {
   // Provide helpful hints
   if (error.message?.includes('scope')) {
     console.error(chalk.yellow('\n💡 Tip: Run "gh auth refresh -s project" to add project scope'));
-  } else if (error.message?.includes('not found')) {
+  } else if (error.message?.includes('not found') || error.stderr?.includes('not found')) {
     console.error(chalk.yellow('\n💡 Tip: Verify the project ID and owner with "gh project list"'));
   }
 
