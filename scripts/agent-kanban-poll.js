@@ -14,7 +14,7 @@ const { execSync } = require('child_process');
 const CONFIG = {
   owner: 'ClaireAICodes',
   projectNumber: 9, // AI Agent Kanban project
-  statusFieldName: 'Status',
+  statusFieldName: 'Kanban Column',
   priorityFieldName: 'Priority',
   agentFieldName: 'Assigned Agent',
   columns: {
