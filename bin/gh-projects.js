@@ -285,6 +285,59 @@ const deleteItem = program
     }
   });
 
+const moveItem = program
+  .command('move-item')
+  .description('Move an item to a new status (Kanban column)')
+  .option('--owner <owner>', 'GitHub owner (user or org)')
+  .requiredOption('--item-id <id>', 'Item ID (PVTI_...)')
+  .requiredOption('--project-id <id>', 'Project ID (number)')
+  .requiredOption('--status <status>', 'Target status: Todo, In Progress, Review, Done, Cancelled')
+  .action(async (options) => {
+    try {
+      const owner = options.owner || await getDefaultOwner();
+      await itemCommands.moveItem(owner, options.projectId, options.itemId, options.status);
+      console.log(chalk.green(`✓ Item moved to "${options.status}"`));
+    } catch (error) {
+      handleError(error);
+    }
+  });
+
+const updateField = program
+  .command('update-field')
+  .description('Update a custom field value on an item')
+  .option('--owner <owner>', 'GitHub owner (user or org)')
+  .requiredOption('--item-id <id>', 'Item ID (PVTI_...)')
+  .requiredOption('--project-id <id>', 'Project ID (number)')
+  .requiredOption('--field <name>', 'Field name: Priority, Assigned Agent, Task Type, Est. Hours')
+  .requiredOption('--value <value>', 'New value')
+  .option('--field-type <type>', 'Field type: text, single-select, number, date', 'text')
+  .action(async (options) => {
+    try {
+      const owner = options.owner || await getDefaultOwner();
+      await itemCommands.updateField(owner, options.projectId, options.itemId, options.field, options.value, options.fieldType);
+      console.log(chalk.green(`✓ Field "${options.field}" updated to "${options.value}"`));
+    } catch (error) {
+      handleError(error);
+    }
+  });
+
+const listByStatus = program
+  .command('list-by-status')
+  .description('List items filtered by status column')
+  .option('--owner <owner>', 'GitHub owner (user or org)')
+  .requiredOption('--project-id <id>', 'Project ID')
+  .requiredOption('--status <status>', 'Filter by status: Todo, In Progress, Review, Done')
+  .option('--format <format>', 'Output format: table or json', 'table')
+  .action(async (options) => {
+    try {
+      const owner = options.owner || await getDefaultOwner();
+      const result = await itemCommands.listByStatus(owner, options.projectId, options.status, options.format);
+      console.log(result);
+    } catch (error) {
+      handleError(error);
+    }
+  });
+
 // =====================
 // FIELD COMMANDS
 // =====================
