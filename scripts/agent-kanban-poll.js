@@ -209,13 +209,12 @@ async function handleIdea(item, owner, projectNumber) {
   for (const task of tasks) {
     console.log(`   Creating: ${task.title}`);
     
+    // gh project item-create only accepts 1 arg (title)
     const args = [
       'project', 'item-create',
       projectNumber.toString(),
       '--owner', owner,
-      '--title', task.title,
-      '--body', task.body,
-      '--format', 'json'
+      '--title', task.title
     ];
     
     const { stdout } = gh(args);
@@ -224,10 +223,11 @@ async function handleIdea(item, owner, projectNumber) {
       newItem = JSON.parse(stdout);
     } catch (e) {
       console.log(`   ❌ Failed to create task: ${task.title}`);
+      console.log(`   Error: ${stdout}`);
       continue;
     }
     
-    // Set priority if provided
+    // Set priority via field edit (separate call)
     if (task.priority) {
       const { stdout: fieldOut } = gh(['project', 'field-list', projectNumber.toString(), '--owner', owner, '--format', 'json']);
       let fields;
